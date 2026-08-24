@@ -9,6 +9,8 @@ KEYWORD = "청소기"
 LATITUDE = 35.1543
 LONGITUDE = 126.9022
 
+TARGET_DOMAIN = "bestshop.lge.co.kr"
+
 url = (
     "https://search.naver.com/search.naver?query="
     + quote(KEYWORD)
@@ -16,9 +18,7 @@ url = (
 
 with sync_playwright() as p:
 
-    browser = p.chromium.launch(
-        headless=True
-    )
+    browser = p.chromium.launch(headless=True)
 
     context = browser.new_context(
         geolocation={
@@ -33,6 +33,7 @@ with sync_playwright() as p:
     page = context.new_page()
 
     print("네이버 접속...")
+
     page.goto(
         url,
         wait_until="domcontentloaded",
@@ -41,51 +42,46 @@ with sync_playwright() as p:
 
     time.sleep(3)
 
-    print("제목:", page.title())
-    print("URL:", page.url)
+    # lnk_url 클래스만 검색
+    links = page.locator("a.lnk_url")
 
-    html = page.content()
+    print("lnk_url 개수:", links.count())
 
-    print("HTML 크기:", len(html))
+    for i in range(links.count()):
 
-    # BeautifulSoup
-    soup = BeautifulSoup(
-        html,
-        "html.parser"
-    )
+        link = links.nth(i)
 
-    print("\n===== 검색 결과 =====")
+        href = link.get_attribute("href")
+        onclick = link.get_attribute("onclick")
+        text = link.inner_text().strip()
 
-    count = 0
+        if not onclick:
+            continue
 
-    for tag in soup.find_all(["a", "h2", "h3"]):
+        # amp;r=숫자 추출
+        match = re.search(r'amp;r=(\d+)', onclick)
 
-        text = tag.get_text(
-            " ",
-            strip=True
+        if not match:
+            continue
+
+        rank = int(match.group(1))
+
+        print(
+            f"순위: {rank} | "
+            f"사이트: {text} | "
+            f"href: {href}"
         )
 
-        if not text:
-            continue
+        # 내가 찾는 사이트인지 확인
+        if TARGET_DOMAIN in (href or "") or TARGET_DOMAIN in text:
 
-        if len(text) < 2:
-            continue
+            print()
+            print("===== 광고 발견 =====")
+            print("키워드 :", KEYWORD)
+            print("사이트 :", TARGET_DOMAIN)
+            print("순위   :", rank)
+            print("====================")
 
-        print(text[:200])
-
-        count += 1
-
-        if count >= 30:
             break
-
-    # HTML 저장
-    with open(
-        "naver_result.html",
-        "w",
-        encoding="utf-8"
-    ) as f:
-        f.write(html)
-
-    print("\nHTML 저장 완료")
 
     browser.close()
