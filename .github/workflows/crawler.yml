@@ -28,10 +28,3 @@ jobs:
       - name: Run crawler
         run: |
           python crawler.py
-
-      - name: Upload HTML result
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: naver-result
-          path: naver_result.html
