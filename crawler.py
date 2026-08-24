@@ -35,93 +35,100 @@ with sync_playwright() as p:
         headless=True
     )
 
-    context = browser.new_context(
-        geolocation={
-            "latitude": LATITUDE,
-            "longitude": LONGITUDE
-        },
-        permissions=["geolocation"],
-        locale="ko-KR",
-        timezone_id="Asia/Seoul"
-    )
+    for region in REGIONS:
 
-    page = context.new_page()
-
-    print("네이버 접속...")
-    print("키워드 :", KEYWORD)
-    print("지역   :", REGION)
-    print("좌표   :", LATITUDE, LONGITUDE)
-
-    page.goto(
-        url,
-        wait_until="domcontentloaded",
-        timeout=30000
-    )
-
-    # 고정 sleep 대신 광고 링크가 나타날 때까지 대기
-    try:
-        page.locator("a.lnk_url").first.wait_for(
-            state="attached",
-            timeout=10000
+        print()
+        print("================================")
+        print("지역 :", region["name"])
+        print(
+            "좌표 :",
+            region["latitude"],
+            region["longitude"]
         )
-    except:
-        print("파워링크 광고를 찾지 못했습니다.")
-        browser.close()
-        exit()
+        print("================================")
 
-    links = page.locator("a.lnk_url")
-
-    print()
-    print("===== 파워링크 TOP 5 =====")
-
-    target_rank = None
-    count = 0
-
-    for i in range(links.count()):
-
-        link = links.nth(i)
-
-        onclick = link.get_attribute("onclick")
-        text = link.inner_text().strip()
-
-        if not onclick:
-            continue
-
-        # amp;r=숫자
-        match = re.search(
-            r'(?:&amp;|&)r=(\d+)',
-            onclick
+        context = browser.new_context(
+            geolocation={
+                "latitude": region["latitude"],
+                "longitude": region["longitude"]
+            },
+            permissions=["geolocation"],
+            locale="ko-KR",
+            timezone_id="Asia/Seoul"
         )
 
-        if not match:
+        page = context.new_page()
+
+        page.goto(
+            url,
+            wait_until="domcontentloaded",
+            timeout=30000
+        )
+
+        try:
+            page.locator(
+                "a.lnk_url"
+            ).first.wait_for(
+                state="attached",
+                timeout=10000
+            )
+        except:
+            print("파워링크를 찾지 못했습니다.")
+            context.close()
             continue
 
-        rank = int(match.group(1))
+        links = page.locator("a.lnk_url")
 
-        # 1~5위만 출력
-        if rank > 5:
-            continue
+        target_rank = None
 
-        print(f"{rank}위 : {text}")
+        print()
+        print("===== TOP 5 =====")
 
-        # 내가 찾는 도메인
-        if TARGET_DOMAIN.lower() in text.lower():
+        for i in range(links.count()):
 
-            target_rank = rank
+            link = links.nth(i)
 
-    print("==========================")
+            onclick = link.get_attribute("onclick")
+            text = link.inner_text().strip()
 
-    print()
+            if not onclick:
+                continue
 
-    if target_rank:
-        print("===== 내 광고 =====")
-        print("사이트 :", TARGET_DOMAIN)
-        print("순위   :", target_rank)
-        print("===================")
-    else:
-        print("===== 내 광고 =====")
-        print("사이트 :", TARGET_DOMAIN)
-        print("순위   : TOP 5 밖 또는 미노출")
-        print("===================")
+            match = re.search(
+                r'(?:&amp;|&)r=(\d+)',
+                onclick
+            )
+
+            if not match:
+                continue
+
+            rank = int(match.group(1))
+
+            if rank > 5:
+                continue
+
+            print(
+                f"{rank}위 : {text}"
+            )
+
+            if TARGET_DOMAIN.lower() in text.lower():
+                target_rank = rank
+
+        print("=================")
+
+        if target_rank:
+            print(
+                "내 광고:",
+                TARGET_DOMAIN,
+                f"→ {target_rank}위"
+            )
+        else:
+            print(
+                "내 광고:",
+                TARGET_DOMAIN,
+                "→ TOP 5 밖 또는 미노출"
+            )
+
+        context.close()
 
     browser.close()
