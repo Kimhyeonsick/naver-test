@@ -1,6 +1,6 @@
 name: Naver Crawler Test
 
-on:
+"on":
   workflow_dispatch:
 
 jobs:
