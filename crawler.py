@@ -4,10 +4,6 @@ from urllib.parse import quote
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-REGION = "부산진구 부전동"
-LATITUDE = 35.1579
-LONGITUDE = 129.0594
-
 url = (
     "https://search.naver.com/search.naver?query="
     + quote(KEYWORD)
@@ -15,14 +11,12 @@ url = (
 
 with sync_playwright() as p:
 
-    browser = p.chromium.launch(headless=True)
+    browser = p.chromium.launch(
+        headless=True
+    )
 
+    # 지역 설정 없이 일반 브라우저
     context = browser.new_context(
-        geolocation={
-            "latitude": LATITUDE,
-            "longitude": LONGITUDE
-        },
-        permissions=["geolocation"],
         locale="ko-KR",
         timezone_id="Asia/Seoul"
     )
@@ -31,7 +25,6 @@ with sync_playwright() as p:
 
     print("네이버 접속...")
     print("키워드 :", KEYWORD)
-    print("지역   :", REGION)
 
     page.goto(
         url,
@@ -40,7 +33,9 @@ with sync_playwright() as p:
     )
 
     try:
-        page.locator("a.lnk_url").first.wait_for(
+        page.locator(
+            "a.lnk_url"
+        ).first.wait_for(
             state="attached",
             timeout=10000
         )
@@ -51,12 +46,14 @@ with sync_playwright() as p:
 
     links = page.locator("a.lnk_url")
 
+    print("lnk_url 개수:", links.count())
     print()
+
     print("===== 파워링크 TOP 5 =====")
 
-    rank = 0
     target_rank = None
-    seen_domains = set()
+    rank = 0
+    seen = set()
 
     for i in range(links.count()):
 
@@ -67,13 +64,13 @@ with sync_playwright() as p:
         if not text:
             continue
 
-        # 같은 광고의 중복 링크 방지
         domain = text.lower().rstrip("/")
 
-        if domain in seen_domains:
+        # 일단 동일 URL 중복 제거
+        if domain in seen:
             continue
 
-        seen_domains.add(domain)
+        seen.add(domain)
 
         rank += 1
 
@@ -82,19 +79,19 @@ with sync_playwright() as p:
 
         print(f"{rank}위 : {text}")
 
-        if TARGET_DOMAIN.lower().rstrip("/") == domain:
+        if domain == TARGET_DOMAIN.lower().rstrip("/"):
             target_rank = rank
 
     print("==========================")
 
+    print()
+
     if target_rank:
-        print()
         print("===== 내 광고 =====")
         print("사이트 :", TARGET_DOMAIN)
         print("순위   :", target_rank)
         print("===================")
     else:
-        print()
         print("===== 내 광고 =====")
         print("사이트 :", TARGET_DOMAIN)
         print("순위   : TOP 5 밖 또는 미노출")
