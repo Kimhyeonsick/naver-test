@@ -1,13 +1,14 @@
 from playwright.sync_api import sync_playwright
 from urllib.parse import quote
 import re
-import time
 
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-LATITUDE = 35.1628
-LONGITUDE = 129.0530
+# 부산진구 부전동
+REGION = "부산진구 부전동"
+LATITUDE = 35.1579
+LONGITUDE = 129.0594
 
 url = (
     "https://search.naver.com/search.naver?query="
@@ -16,7 +17,9 @@ url = (
 
 with sync_playwright() as p:
 
-    browser = p.chromium.launch(headless=True)
+    browser = p.chromium.launch(
+        headless=True
+    )
 
     context = browser.new_context(
         geolocation={
@@ -31,20 +34,34 @@ with sync_playwright() as p:
     page = context.new_page()
 
     print("네이버 접속...")
+    print("키워드 :", KEYWORD)
+    print("지역   :", REGION)
+    print("좌표   :", LATITUDE, LONGITUDE)
 
     page.goto(
         url,
         wait_until="domcontentloaded",
-        timeout=60000
+        timeout=30000
     )
 
-    time.sleep(3)
+    # 고정 sleep 대신 광고 링크가 나타날 때까지 대기
+    try:
+        page.locator("a.lnk_url").first.wait_for(
+            state="attached",
+            timeout=10000
+        )
+    except:
+        print("파워링크 광고를 찾지 못했습니다.")
+        browser.close()
+        exit()
 
     links = page.locator("a.lnk_url")
 
-    print("lnk_url 개수:", links.count())
+    print()
+    print("===== 파워링크 TOP 5 =====")
 
-    found = False
+    target_rank = None
+    count = 0
 
     for i in range(links.count()):
 
@@ -56,7 +73,7 @@ with sync_playwright() as p:
         if not onclick:
             continue
 
-        # amp;r=숫자 추출
+        # amp;r=숫자
         match = re.search(
             r'(?:&amp;|&)r=(\d+)',
             onclick
@@ -67,23 +84,30 @@ with sync_playwright() as p:
 
         rank = int(match.group(1))
 
-        # 사이트 확인
+        # 1~5위만 출력
+        if rank > 5:
+            continue
+
+        print(f"{rank}위 : {text}")
+
+        # 내가 찾는 도메인
         if TARGET_DOMAIN.lower() in text.lower():
 
-            print()
-            print("===== 광고 발견 =====")
-            print("키워드 :", KEYWORD)
-            print("사이트 :", TARGET_DOMAIN)
-            print("순위   :", rank)
-            print("====================")
+            target_rank = rank
 
-            found = True
-            break
+    print("==========================")
 
-    if not found:
-        print()
-        print("광고를 찾지 못했습니다.")
-        print("키워드 :", KEYWORD)
+    print()
+
+    if target_rank:
+        print("===== 내 광고 =====")
         print("사이트 :", TARGET_DOMAIN)
+        print("순위   :", target_rank)
+        print("===================")
+    else:
+        print("===== 내 광고 =====")
+        print("사이트 :", TARGET_DOMAIN)
+        print("순위   : TOP 5 밖 또는 미노출")
+        print("===================")
 
     browser.close()
