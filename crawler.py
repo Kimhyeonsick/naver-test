@@ -59,7 +59,7 @@ with sync_playwright() as p:
             continue
 
         # amp;r=숫자 추출
-        match = re.search(r'amp;r=(\d+)', onclick)
+        match = re.search(r'(?:&amp;|&)r=(\d+)', onclick)
 
         if not match:
             continue
