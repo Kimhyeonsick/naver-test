@@ -10,10 +10,7 @@ url = (
 )
 
 SELECTOR = (
-    "#power_link_body > ul > "
-    "li.lst.js-hover-item.type_sublink.ext_desc.type_subtitle "
-    "> div.inner > div.title_url_area > div "
-    "> span.lnk_url_area > a"
+    "#power_link_body span.lnk_url_area > a"
 )
 
 with sync_playwright() as p:
