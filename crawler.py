@@ -6,8 +6,8 @@ import time
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-LATITUDE = 35.1543
-LONGITUDE = 126.9022
+LATITUDE = 35.1628
+LONGITUDE = 129.0530
 
 url = (
     "https://search.naver.com/search.naver?query="
