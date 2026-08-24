@@ -5,10 +5,24 @@ import re
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-# 부산진구 부전동
-REGION = "부산진구 부전동"
-LATITUDE = 35.1579
-LONGITUDE = 129.0594
+# 테스트 지역
+REGIONS = [
+    {
+        "name": "부산 부산진구 부전동",
+        "latitude": 35.1579,
+        "longitude": 129.0594
+    },
+    {
+        "name": "광주 서구 양동",
+        "latitude": 35.1497,
+        "longitude": 126.9020
+    },
+    {
+        "name": "서울 마포구 서교동",
+        "latitude": 37.5550,
+        "longitude": 126.9220
+    }
+]
 
 url = (
     "https://search.naver.com/search.naver?query="
