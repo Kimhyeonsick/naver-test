@@ -5,7 +5,6 @@ import re
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-# 테스트 지역
 REGIONS = [
     {
         "name": "부산 부산진구 부전동",
@@ -59,6 +58,8 @@ with sync_playwright() as p:
 
         page = context.new_page()
 
+        print("네이버 접속...")
+
         page.goto(
             url,
             wait_until="domcontentloaded",
@@ -82,7 +83,7 @@ with sync_playwright() as p:
         target_rank = None
 
         print()
-        print("===== TOP 5 =====")
+        print("===== 파워링크 TOP 5 =====")
 
         for i in range(links.count()):
 
@@ -107,24 +108,24 @@ with sync_playwright() as p:
             if rank > 5:
                 continue
 
-            print(
-                f"{rank}위 : {text}"
-            )
+            print(f"{rank}위 : {text}")
 
             if TARGET_DOMAIN.lower() in text.lower():
                 target_rank = rank
 
-        print("=================")
+        print("==========================")
 
         if target_rank:
             print(
-                "내 광고:",
+                "내 광고 :",
                 TARGET_DOMAIN,
-                f"→ {target_rank}위"
+                "→",
+                target_rank,
+                "위"
             )
         else:
             print(
-                "내 광고:",
+                "내 광고 :",
                 TARGET_DOMAIN,
                 "→ TOP 5 밖 또는 미노출"
             )
