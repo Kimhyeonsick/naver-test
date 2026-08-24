@@ -9,9 +9,7 @@ url = (
     + quote(KEYWORD)
 )
 
-SELECTOR = (
-    "#power_link_body span.lnk_url_area > a"
-)
+SELECTOR = "#power_link_body span.lnk_url_area > a"
 
 with sync_playwright() as p:
 
@@ -46,39 +44,24 @@ with sync_playwright() as p:
 
     links = page.locator(SELECTOR)
 
-    print("파워링크 광고 개수:", links.count())
+    print()
+    print("전체 광고 URL 개수:", links.count())
     print()
 
-    print("===== 파워링크 TOP 5 =====")
+    # 일단 전체를 DOM 순서대로 출력
+    print("===== DOM 순서 전체 =====")
 
-    target_rank = None
-
-    for i in range(min(links.count(), 5)):
+    for i in range(links.count()):
 
         link = links.nth(i)
 
         text = link.inner_text().strip()
 
-        print(f"{i + 1}위 : {text}")
-
-        if TARGET_DOMAIN.lower().rstrip("/") == \
-           text.lower().rstrip("/"):
-
-            target_rank = i + 1
+        print(
+            f"DOM {i + 1}위 : {text}"
+        )
 
     print("==========================")
-    print()
-
-    if target_rank:
-        print("===== 내 광고 =====")
-        print("사이트 :", TARGET_DOMAIN)
-        print("순위   :", target_rank)
-        print("===================")
-    else:
-        print("===== 내 광고 =====")
-        print("사이트 :", TARGET_DOMAIN)
-        print("순위   : TOP 5 밖 또는 미노출")
-        print("===================")
 
     context.close()
     browser.close()
