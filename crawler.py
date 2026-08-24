@@ -9,6 +9,13 @@ url = (
     + quote(KEYWORD)
 )
 
+SELECTOR = (
+    "#power_link_body > ul > "
+    "li.lst.js-hover-item.type_sublink.ext_desc.type_subtitle "
+    "> div.inner > div.title_url_area > div "
+    "> span.lnk_url_area > a"
+)
+
 with sync_playwright() as p:
 
     browser = p.chromium.launch(
@@ -23,7 +30,6 @@ with sync_playwright() as p:
     page = context.new_page()
 
     print("네이버 접속...")
-    print("키워드 :", KEYWORD)
 
     page.goto(
         url,
@@ -32,9 +38,7 @@ with sync_playwright() as p:
     )
 
     try:
-        page.locator(
-            "span.lnk_url_area"
-        ).first.wait_for(
+        page.locator(SELECTOR).first.wait_for(
             state="attached",
             timeout=10000
         )
@@ -43,39 +47,27 @@ with sync_playwright() as p:
         browser.close()
         exit()
 
-    areas = page.locator("span.lnk_url_area")
+    links = page.locator(SELECTOR)
 
-    print("lnk_url_area 개수:", areas.count())
+    print("파워링크 광고 개수:", links.count())
     print()
 
     print("===== 파워링크 TOP 5 =====")
 
     target_rank = None
 
-    for i in range(areas.count()):
+    for i in range(min(links.count(), 5)):
 
-        area = areas.nth(i)
+        link = links.nth(i)
 
-        link = area.locator("a.lnk_url")
+        text = link.inner_text().strip()
 
-        if link.count() == 0:
-            continue
-
-        text = link.first.inner_text().strip()
-
-        if not text:
-            continue
-
-        rank = i + 1
-
-        if rank > 5:
-            break
-
-        print(f"{rank}위 : {text}")
+        print(f"{i + 1}위 : {text}")
 
         if TARGET_DOMAIN.lower().rstrip("/") == \
            text.lower().rstrip("/"):
-            target_rank = rank
+
+            target_rank = i + 1
 
     print("==========================")
     print()
