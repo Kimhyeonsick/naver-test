@@ -15,7 +15,6 @@ with sync_playwright() as p:
         headless=True
     )
 
-    # 지역 설정 없이 일반 브라우저
     context = browser.new_context(
         locale="ko-KR",
         timezone_id="Asia/Seoul"
@@ -34,7 +33,7 @@ with sync_playwright() as p:
 
     try:
         page.locator(
-            "a.lnk_url"
+            "span.lnk_url_area"
         ).first.wait_for(
             state="attached",
             timeout=10000
@@ -44,46 +43,41 @@ with sync_playwright() as p:
         browser.close()
         exit()
 
-    links = page.locator("a.lnk_url")
+    areas = page.locator("span.lnk_url_area")
 
-    print("lnk_url 개수:", links.count())
+    print("lnk_url_area 개수:", areas.count())
     print()
 
     print("===== 파워링크 TOP 5 =====")
 
     target_rank = None
-    rank = 0
-    seen = set()
 
-    for i in range(links.count()):
+    for i in range(areas.count()):
 
-        link = links.nth(i)
+        area = areas.nth(i)
 
-        text = link.inner_text().strip()
+        link = area.locator("a.lnk_url")
+
+        if link.count() == 0:
+            continue
+
+        text = link.first.inner_text().strip()
 
         if not text:
             continue
 
-        domain = text.lower().rstrip("/")
-
-        # 일단 동일 URL 중복 제거
-        if domain in seen:
-            continue
-
-        seen.add(domain)
-
-        rank += 1
+        rank = i + 1
 
         if rank > 5:
             break
 
         print(f"{rank}위 : {text}")
 
-        if domain == TARGET_DOMAIN.lower().rstrip("/"):
+        if TARGET_DOMAIN.lower().rstrip("/") == \
+           text.lower().rstrip("/"):
             target_rank = rank
 
     print("==========================")
-
     print()
 
     if target_rank:
