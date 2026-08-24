@@ -1,16 +1,13 @@
 from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup
 from urllib.parse import quote
-import time
 import re
+import time
 
 KEYWORD = "청소기"
+TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-# 부산진구 부전동 테스트 좌표
 LATITUDE = 35.1543
 LONGITUDE = 126.9022
-
-TARGET_DOMAIN = "bestshop.lge.co.kr"
 
 url = (
     "https://search.naver.com/search.naver?query="
@@ -43,16 +40,16 @@ with sync_playwright() as p:
 
     time.sleep(3)
 
-    # lnk_url 클래스만 검색
     links = page.locator("a.lnk_url")
 
     print("lnk_url 개수:", links.count())
+
+    found = False
 
     for i in range(links.count()):
 
         link = links.nth(i)
 
-        href = link.get_attribute("href")
         onclick = link.get_attribute("onclick")
         text = link.inner_text().strip()
 
@@ -60,21 +57,18 @@ with sync_playwright() as p:
             continue
 
         # amp;r=숫자 추출
-        match = re.search(r'(?:&amp;|&)r=(\d+)', onclick)
+        match = re.search(
+            r'(?:&amp;|&)r=(\d+)',
+            onclick
+        )
 
         if not match:
             continue
 
         rank = int(match.group(1))
 
-        print(
-            f"순위: {rank} | "
-            f"사이트: {text} | "
-            f"href: {href}"
-        )
-
-        # 내가 찾는 사이트인지 확인
-        if TARGET_DOMAIN in (href or "") or TARGET_DOMAIN in text:
+        # 사이트 확인
+        if TARGET_DOMAIN.lower() in text.lower():
 
             print()
             print("===== 광고 발견 =====")
@@ -83,6 +77,13 @@ with sync_playwright() as p:
             print("순위   :", rank)
             print("====================")
 
+            found = True
             break
+
+    if not found:
+        print()
+        print("광고를 찾지 못했습니다.")
+        print("키워드 :", KEYWORD)
+        print("사이트 :", TARGET_DOMAIN)
 
     browser.close()
