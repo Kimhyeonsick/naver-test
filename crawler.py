@@ -1,27 +1,12 @@
 from playwright.sync_api import sync_playwright
 from urllib.parse import quote
-import re
 
 KEYWORD = "청소기"
 TARGET_DOMAIN = "bestshop.lge.co.kr"
 
-REGIONS = [
-    {
-        "name": "부산 부산진구 부전동",
-        "latitude": 35.1579,
-        "longitude": 129.0594
-    },
-    {
-        "name": "광주 서구 양동",
-        "latitude": 35.1497,
-        "longitude": 126.9020
-    },
-    {
-        "name": "서울 마포구 서교동",
-        "latitude": 37.5550,
-        "longitude": 126.9220
-    }
-]
+REGION = "부산진구 부전동"
+LATITUDE = 35.1579
+LONGITUDE = 129.0594
 
 url = (
     "https://search.naver.com/search.naver?query="
@@ -30,106 +15,90 @@ url = (
 
 with sync_playwright() as p:
 
-    browser = p.chromium.launch(
-        headless=True
+    browser = p.chromium.launch(headless=True)
+
+    context = browser.new_context(
+        geolocation={
+            "latitude": LATITUDE,
+            "longitude": LONGITUDE
+        },
+        permissions=["geolocation"],
+        locale="ko-KR",
+        timezone_id="Asia/Seoul"
     )
 
-    for region in REGIONS:
+    page = context.new_page()
 
-        print()
-        print("================================")
-        print("지역 :", region["name"])
-        print(
-            "좌표 :",
-            region["latitude"],
-            region["longitude"]
+    print("네이버 접속...")
+    print("키워드 :", KEYWORD)
+    print("지역   :", REGION)
+
+    page.goto(
+        url,
+        wait_until="domcontentloaded",
+        timeout=30000
+    )
+
+    try:
+        page.locator("a.lnk_url").first.wait_for(
+            state="attached",
+            timeout=10000
         )
-        print("================================")
+    except:
+        print("파워링크를 찾지 못했습니다.")
+        browser.close()
+        exit()
 
-        context = browser.new_context(
-            geolocation={
-                "latitude": region["latitude"],
-                "longitude": region["longitude"]
-            },
-            permissions=["geolocation"],
-            locale="ko-KR",
-            timezone_id="Asia/Seoul"
-        )
+    links = page.locator("a.lnk_url")
 
-        page = context.new_page()
+    print()
+    print("===== 파워링크 TOP 5 =====")
 
-        print("네이버 접속...")
+    rank = 0
+    target_rank = None
+    seen_domains = set()
 
-        page.goto(
-            url,
-            wait_until="domcontentloaded",
-            timeout=30000
-        )
+    for i in range(links.count()):
 
-        try:
-            page.locator(
-                "a.lnk_url"
-            ).first.wait_for(
-                state="attached",
-                timeout=10000
-            )
-        except:
-            print("파워링크를 찾지 못했습니다.")
-            context.close()
+        link = links.nth(i)
+
+        text = link.inner_text().strip()
+
+        if not text:
             continue
 
-        links = page.locator("a.lnk_url")
+        # 같은 광고의 중복 링크 방지
+        domain = text.lower().rstrip("/")
 
-        target_rank = None
+        if domain in seen_domains:
+            continue
 
+        seen_domains.add(domain)
+
+        rank += 1
+
+        if rank > 5:
+            break
+
+        print(f"{rank}위 : {text}")
+
+        if TARGET_DOMAIN.lower().rstrip("/") == domain:
+            target_rank = rank
+
+    print("==========================")
+
+    if target_rank:
         print()
-        print("===== 파워링크 TOP 5 =====")
+        print("===== 내 광고 =====")
+        print("사이트 :", TARGET_DOMAIN)
+        print("순위   :", target_rank)
+        print("===================")
+    else:
+        print()
+        print("===== 내 광고 =====")
+        print("사이트 :", TARGET_DOMAIN)
+        print("순위   : TOP 5 밖 또는 미노출")
+        print("===================")
 
-        for i in range(links.count()):
-
-            link = links.nth(i)
-
-            onclick = link.get_attribute("onclick")
-            text = link.inner_text().strip()
-
-            if not onclick:
-                continue
-
-            match = re.search(
-                r'(?:&amp;|&)r=(\d+)',
-                onclick
-            )
-
-            if not match:
-                continue
-
-            rank = int(match.group(1))
-
-            if rank > 5:
-                continue
-
-            print(f"{rank}위 : {text}")
-
-            if TARGET_DOMAIN.lower() in text.lower():
-                target_rank = rank
-
-        print("==========================")
-
-        if target_rank:
-            print(
-                "내 광고 :",
-                TARGET_DOMAIN,
-                "→",
-                target_rank,
-                "위"
-            )
-        else:
-            print(
-                "내 광고 :",
-                TARGET_DOMAIN,
-                "→ TOP 5 밖 또는 미노출"
-            )
-
-        context.close()
-
+    context.close()
     browser.close()
